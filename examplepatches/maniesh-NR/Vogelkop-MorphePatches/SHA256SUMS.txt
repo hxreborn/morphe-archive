@@ -1,6 +1,3 @@
-fdd6cb7e144f2cd4098c2ca715d1ab42321f6a1cc95714c8400ece9f13bcc96c  patches-bundle.json
-c0572182c2a2327f1ecffed1a0d5684ca36cab168e8d59cca30274937eced121  patches-list.json
-a313cc001fecaf77cee09181ae3394996e91cfa75cf0fbc2957f95aa7ad65a40  patches/build/libs/patches-1.2.5.mpp
-adf4d7e017ec0ee592dbb9e0c1f10f9a34031fd9505ef6078a02452e11e66c29  patches/build/libs/patches-1.2.5-sources.mpp
-ab8869e7e543cb8adda7e5dd9d15631837885bb52b5dc5ce74a18668053c55e0  patches/build/libs/patches-1.2.5-javadoc.mpp
-1f5f9a6f63c4a9265915c9420413d8889fcfa32ccd4adcbf6ab44cda3fb2be32  morphe-signing.pub
+9e43c08dcb5b2031da94c5eb345acb73afb2950bdfc379dbe111f5796d069efc  patches-1.2.6.mpp
+f29a221a40793d95d13b4d5f0ebc91ffa906d728984254fa4421b80ea1bdb222  patches-1.2.6-sources.mpp
+af1ec3cdce63392e060f5c92e2360200bb6e5ba65f70e12797ed642571d06357  patches-1.2.6-javadoc.mpp

@@ -5,6 +5,35 @@ Opera GX) are documented here. Versions follow the tags in this repository;
 each tag matches a GitHub release carrying the compiled `patches-<version>.mpp`
 bundle.
 
+## v1.2.6 (2026-11-09)
+
+### Durable signing key + cross-session continuity
+
+No patch-logic changes — the patch classes are byte-identical to v1.2.5.
+This release exists to fix the process problem that has been hurting
+updates:
+
+- **One permanent signing key.** Every previous private key (v1.1.x
+  through v1.2.5) was lost with a recycled build sandbox, forcing a key
+  rotation at v1.2.0, v1.2.4 and v1.2.5 — and every rotation made Morphe
+  Manager refuse the update for already-installed sources (Manager pins
+  the signer on first install). From v1.2.6 on, the key is stored durably
+  (see the `sandbox-storage` release asset `morphe-signing.key`) and will
+  never rotate again. **Updating from v1.2.3/1.2.4/1.2.5 shows a one-time
+  "new signing key" confirmation in Manager — tap Trust; that is the
+  pinned-key change, not an attack.**
+- **Repo as durable state.** `STATE.md` at the repo root now carries the
+  full investigation memory (crash bisection status, the
+  welcome-init-failure analysis, build-from-fresh-sandbox instructions),
+  and the big binaries (unpatched .apkm inputs, diagnostic builds,
+  keystores) live as `sandbox-storage` release assets so hourly sandbox
+  wipes stop losing work.
+
+Verification: bundle signature (MorpheSig1, Ed25519) verified against
+`morphe-signing.pub`; end-to-end re-applied to Opera GX 3.3.18 and Opera
+Beta 104.0.5262 .apkm inputs with Morphe Desktop — all patches apply
+(GX: 5 patches; Beta: 10 patches).
+
 ## v1.2.5 (2026-11-08)
 
 ### Modded-APK cross-analysis: permission hygiene + wider endpoint net

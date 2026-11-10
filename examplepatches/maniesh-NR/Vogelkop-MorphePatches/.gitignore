@@ -25,3 +25,4 @@ morphe-signing.key
 tools/.cache/
 work-audit/
 work-find/
+.buildenv

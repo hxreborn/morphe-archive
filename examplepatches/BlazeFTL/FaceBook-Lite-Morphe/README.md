@@ -37,7 +37,7 @@
 Click **[Add To Morphe↗️](https://morphe.software/add-source?github=BlazeFTL/FaceBook-Lite-Morphe)** with Morphe installed, or add `https://github.com/BlazeFTL/FaceBook-Lite-Morphe` as a patch source in Morphe. Pick Facebook Lite, select patches, patch.
 
 > [!NOTE]
-> Built for Facebook Lite `536.0.0.11.107`. Hide sponsored posts, Use system font in feed and Video download only work on that version; the other patches also work on `530.0.0.8.106`. Use an untouched APK, not someone else's mod.
+> Supports Facebook Lite `536.0.0.11.107` only. Use an untouched APK, not someone else's mod.
 
 ## 🐉 Patches list
 

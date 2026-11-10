@@ -19,25 +19,27 @@ Click the button below, or manually add this repo url to Morphe Manager: https:/
 ## 🩹 Patches list
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.1.0-dev.1](https://github.com/srinath1848/nobrokerhood-patches/releases/tag/v1.1.0-dev.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`dev`&nbsp;&nbsp;•&nbsp;&nbsp;5 patches total
+> **[v1.1.0](https://github.com/srinath1848/nobrokerhood-patches/releases/tag/v1.1.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;7 patches total
 <details open>
-<summary>📦 NoBrokerHood&nbsp;&nbsp;•&nbsp;&nbsp;5 patches</summary>
+<summary>📦 NoBrokerHood&nbsp;&nbsp;•&nbsp;&nbsp;7 patches</summary>
 <br>
 
 **Package name:** `com.app.nobrokerhood`
 
 **🎯 Supported versions:**
 
-| 3.6.6 |
+| 3.6.11 |
 | :---: |
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
-| [NoBrokerHood: Hide door-notification banners (experimental)](#nobrokerhood-hide-door-notification-banners-experimental) | Suppresses optional banners in door push data. |  |
-| [NoBrokerHood: Hide entry banner fragment (experimental)](#nobrokerhood-hide-entry-banner-fragment-experimental) | Suppresses entry promotional fragment setup. |  |
-| [NoBrokerHood: Hide feed ad cards](#nobrokerhood-hide-feed-ad-cards) | Removes home-feed advertising cards. |  |
-| [NoBrokerHood: Hide promotional popups](#nobrokerhood-hide-promotional-popups) | Suppresses application promotional dialogs. |  |
-| [NoBrokerHood: Hide visitor-flow ads](#nobrokerhood-hide-visitor-flow-ads) | Removes visitor screen advertising banners. |  |
+| [NoBrokerHood: Hide app-bar banners (experimental)](#nobrokerhood-hide-app-bar-banners-experimental) | Empty app-bar banner entries; may leave a layout placeholder. |  |
+| [NoBrokerHood: Hide expanded notification images (experimental)](#nobrokerhood-hide-expanded-notification-images-experimental) | Hide large banner images in entry/exit notifications while retaining text (3.6.11). |  |
+| [NoBrokerHood: Hide feed ad cards](#nobrokerhood-hide-feed-ad-cards) | Hide forum/home-feed ad cards (3.6.11). |  |
+| [NoBrokerHood: Hide homepage top ads (experimental)](#nobrokerhood-hide-homepage-top-ads-experimental) | Supply an empty top-ad list and disable its loading/expanded state. |  |
+| [NoBrokerHood: Hide post-approval ad card (experimental)](#nobrokerhood-hide-post-approval-ad-card-experimental) | Hide the sponsored card shown after entry approval or pre-approval (3.6.11). |  |
+| [NoBrokerHood: Hide promotional popups](#nobrokerhood-hide-promotional-popups) | Suppress app-level marketing dialogs (3.6.11). |  |
+| [NoBrokerHood: Hide visitor-flow ads](#nobrokerhood-hide-visitor-flow-ads) | Hide the visitor-flow promotional carousel (3.6.11). |  |
 
 </details>
 
