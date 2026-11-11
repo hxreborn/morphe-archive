@@ -2131,14 +2131,6 @@
                 "updatedAt": 1790394335936
             },
             {
-                "name": "MightyMichs-Patches",
-                "source": "https://raw.githubusercontent.com/mich111discord/MightyMichs-Patches/main/patches-bundle.json",
-                "autoUpdate": true,
-                "sortOrder": 295,
-                "createdAt": 1790394336291,
-                "updatedAt": 1790394336291
-            },
-            {
                 "name": "telegram-morphe-patches-",
                 "source": "https://raw.githubusercontent.com/newuser7171/telegram-morphe-patches-/main/patches-bundle.json",
                 "autoUpdate": true,
@@ -3369,14 +3361,6 @@
                 "sortOrder": 480,
                 "createdAt": 1793335943634,
                 "updatedAt": 1793335943634
-            },
-            {
-                "name": "morphe-patches",
-                "source": "https://raw.githubusercontent.com/Fuku856/morphe-patches/main/patches-bundle.json",
-                "autoUpdate": true,
-                "sortOrder": 482,
-                "createdAt": 1793420905106,
-                "updatedAt": 1793420905106
             },
             {
                 "name": "bitchord-morphe-patches",
