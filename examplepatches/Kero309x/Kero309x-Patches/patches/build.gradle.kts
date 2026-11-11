@@ -1,7 +1,7 @@
 patches {
     about {
         name = "Kero309x Patches"
-        description = "Independent, clean-room patches for the Morphe framework, built for multiple applications. Current target: Anghami 8.0.28."
+        description = "Independent, clean-room patches for the Morphe framework, built for multiple applications. Current targets: Anghami 8.0.28 and Ana Vodafone 2026.11.1."
         author = "Kero309x"
         // The plugin writes every one of these into the bundle manifest and fails
         // on a null value, so none of them may be omitted. A profile URL is used
@@ -66,7 +66,7 @@ tasks.named("buildAndroid") {
 }
 
 /**
- * Applies every registered patch to an unmodified APK so a fingerprint that no
+ * Applies every patch of the supplied APK's application so a fingerprint that no
  * longer resolves fails here instead of at a user's patch run.
  *
  * The check is deliberately not part of `build`: it needs a proprietary APK that
@@ -74,7 +74,7 @@ tasks.named("buildAndroid") {
  */
 tasks.register<JavaExec>("verifyPatches") {
     group = "verification"
-    description = "Runs every registered patch against an unmodified APK supplied with -Papk=<path>."
+    description = "Runs every patch for the supplied APK's application against that unmodified APK (-Papk=<path>)."
 
     classpath = verifyRuntimeClasspath
     mainClass.set("app.keropatches.verification.VerifyPatchesKt")

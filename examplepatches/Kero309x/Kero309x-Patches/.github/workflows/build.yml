@@ -70,6 +70,18 @@ jobs:
         # wrong patches.
         run: git diff --exit-code patches-list.json
 
+      - name: Check the metadata files carry no byte order mark
+        # The manager reads patches-bundle.json as JSON. A byte order mark in
+        # front of it makes the read fail, which leaves the source without a name
+        # and unable to update, so it is refused here instead.
+        run: |
+          for file in patches-bundle.json patches-list.json; do
+            if [ "$(head -c 3 "$file" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
+              echo "::error::$file starts with a byte order mark, which the manager cannot read."
+              exit 1
+            fi
+          done
+
       - name: Upload bundle
         if: success()
         uses: actions/upload-artifact@v7

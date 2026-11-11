@@ -13,12 +13,18 @@ assuming anything was carried over from another project.
 | 2026-11-04 | Minimum SDK declared by the build | 23 |
 | 2026-11-04 | Signing certificate subject | `O=Anghami, C=LB` |
 | 2026-11-04 | Signing certificate SHA-256 | `5e5d1b3609403e1db445d142ef36433a2ad2008030281d437d9e632c01c45659` |
+| 2026-11-10 | Stock build used | `com.emeint.android.myservices` 2026.11.1, version code 1246 |
+| 2026-11-10 | Build container | APKM bundle, eighteen entries, 23 DEX files in the base APK, no native libraries in the base APK |
+| 2026-11-10 | Minimum SDK declared by the build | 24 |
+| 2026-11-10 | Signing certificate subject | `CN=EME International, O=EMEINT, L=Cairo, ST=El Maadi, C=20` |
+| 2026-11-10 | Signing certificate SHA-256 | `7671c18d28517819385163cccb7c76e4ce4a083d05866403fac5ba0547b95485` |
 
 ## Derivation records
 
 | Date | Behaviour | Consulted | Derived | Verified |
 |---|---|---|---|---|
 | 2026-11-04 | platform metadata | stock APKM `info.json` and `META-INF/BNDLTOOL.RSA` | package name, version name, version code, minimum SDK, signing certificate digest | certificate digest recomputed from the DER certificate |
+| 2026-11-10 | platform metadata, Ana Vodafone | stock APKM `info.json`, `aapt dump badging`, `apksigner verify --print-certs` | package name, version name, version code, minimum SDK, signing certificate digest, 23 DEX files, no native libraries in the base APK | certificate digest reported for the v2/v3 scheme by `apksigner` |
 
 > The certificate digest above was read from the v1 JAR signature of the base
 > APK. Before release it must be confirmed against the v2/v3 signing block with
@@ -922,6 +928,472 @@ which stays available for bug reports.
 8.0.28 APK and reports `PASS` for this patch, and the patched APK compiles. All
 four edits were confirmed in the decompiled output. The behaviour has not been
 observed on a device, because no test device is available.
+
+### `vodafone.integrity.license-check` — derived 2026-11-10
+
+**Consulted:** the stock 2026.11.1 APKM only, decompiled locally with apktool
+3.0.3 and `--no-res`. No other patch collection was opened.
+
+**How it was found:**
+
+1. Read the application element of the manifest. It names
+   `com.pairip.application.Application`, a wrapper class that is not part of the
+   application's own package.
+2. Read that class: it extends `vodafone.vis.engezly.AnaVodafoneApplication` and
+   overrides `attachBaseContext` only to call
+   `LicenseClient.checkLicense(context)` after the super call. There is no
+   `VMRunner` and no `libpairipcore.so` in the bundle.
+3. Searched the whole decompiled tree for `checkLicense`. It is called from the
+   wrapper above and from `LicenseContentProvider.onCreate`; the manifest does not
+   register that provider, so only the wrapper call runs.
+4. Read `LicenseClient`: `checkLicense` posts a runnable on the main thread.
+   The runnable binds to the licensing service of `com.android.vending`, and
+   `performLocalInstallerCheck` accepts the installation only when the installer
+   is `com.android.vending`. A response code of 2 leads to a paywall activity; 3
+   is reported as "Request package name invalid"; a bind failure is retried three
+   times and then shows an error dialog and schedules an application shutdown.
+
+**Derived facts:**
+
+| Fact | Value |
+|---|---|
+| Manifest application | `com.pairip.application.Application` |
+| Application base class | `vodafone.vis.engezly.AnaVodafoneApplication` |
+| Startup call | `LicenseClient.checkLicense(Landroid/content/Context;)V`, static |
+| Other call site | `LicenseContentProvider.onCreate`, provider not registered |
+| Service bound to | `com.android.vending` licensing service |
+| Installer requirement | `com.android.vending`, checked by `performLocalInstallerCheck` |
+| Forced rejection | paywall activity, error dialog and delayed shutdown |
+| Side effects of the call | none beyond the check itself |
+
+**Decision:** return early from the static entry point. It is the single call on
+the startup path and it initialises nothing the rest of the application reads, so
+one edit removes the refusal without touching any other code.
+
+**Known limitations:** the patch does not make the installation licensed and does
+not change anything the server is told. Features the server gates by entitlement
+stay gated.
+
+**Verification run:** the unified run applies all registered Ana Vodafone
+patches to the stock base APK and reports `PASS` for this patch, and the patched
+APK compiles. The injected return was confirmed in the decompiled output. The
+behaviour has not been observed on a device, because no test device is
+available.
+
+### `vodafone.system.forced-update` — derived 2026-11-10
+
+**Consulted:** the stock 2026.11.1 APKM only, decompiled locally with apktool
+3.0.3 and `--no-res`. No other patch collection was opened.
+
+**How it was found:**
+
+1. Listed the classes in the `main.prenavigation` package and found
+   `UpdateChecker`, which also carries the methods named `checkAppForceUpdate`,
+   `showAppSoftUpdateIfExists`, `getUpdateInfo` and
+   `checkFeatureHasMaintenance`.
+2. Read the whole class to separate the four gates it runs before a screen is
+   shown: an application force check, a feature force check, a feature soft
+   overlay and an application soft prompt.
+3. Traced where the update type comes from. `GetAppUpdateTypeUseCase` maps the
+   `updateType` string of the channel configuration to `UpdateType`;
+   `GetModuleUpdateTypeUseCase` maps the per-module entry the same way. The
+   mapping is used only to decide these prompts.
+4. Read the two force answers. The application answer shows a blocking dialog and
+   returns `true`; the feature answer opens the store and returns `true`. Both
+   return `false` for every other type, and the caller then continues.
+5. Read the soft handlers. Both act only on the soft type, so leaving the
+   computed update type untouched keeps the voluntary prompt working.
+
+**Derived facts:**
+
+| Fact | Value |
+|---|---|
+| Owner | `Lvodafone/vis/engezly/main/prenavigation/UpdateChecker;` |
+| Application force answer | `AnimatedBarChartKtAnimatedBarChart1111(UpdateType; Continuation;)Object`, boxed `Boolean` |
+| Feature force answer | `AnimatedBarChartKtAnimatedBarChart1(UpdateType; String;)Z` |
+| Application soft prompt | `showAppSoftUpdateIfExists`, acts only on the soft type |
+| Feature soft overlay | acts only on the soft type |
+| Blocking action | dialog with a store action for the application; store launch for a feature |
+| Caller behaviour on `false` | proceeds into the normal screens |
+
+**Decision:** answer both force questions `false` and leave the computed update
+type and the programs that consume it alone. The soft prompt keeps working, the
+stored configuration is not rewritten and the store entry points the application
+offers voluntarily are untouched.
+
+**Known limitations:** the patched build stays on the version it was built for and
+does not receive later fixes, and a feature the server refuses for an outdated
+client stays refused.
+
+**Verification run:** the unified run applies all registered Ana Vodafone
+patches to the stock base APK and reports `PASS` for this patch, and the patched
+APK compiles. Both injected answers were confirmed in the decompiled output. The
+behaviour has not been observed on a device, because no test device is
+available.
+
+### `vodafone.privacy.tracking` - derived 2026-11-10
+
+**Consulted:** the stock 2026.11.1 APKM only, decompiled locally with apktool
+3.0.3 and `--no-res`. No other patch collection was opened.
+
+**How it was found:**
+
+1. Listed the packages of the application and found a tracking package with a
+   `common/model` folder that holds the tool types: `ANALYTICS`, `SOCIAL_MEDIA`,
+   `SURVEY` and `TECHNICAL`.
+2. Read the dispatcher, the class whose metadata names it `EventLogger`. Its
+   only method takes a tool type, a key and a map, and routes the event to the
+   logger of that tool: the analytics logger, the social-media logger or the
+   survey logger. The technical tool does nothing.
+3. Read the caller, the singleton whose metadata names it `Logger`. It adds the
+   common data to an event, and for the survey tool it hands the event to a
+   background coroutine. Both paths end at the dispatcher, so the dispatcher is
+   the only place an event leaves the application.
+4. Searched for the callers of the social-media handler, the class whose
+   metadata names it `SocialMediaEventHandler`. It is not reached through the
+   dispatcher alone: the dashboard, the offers screen, the gift screens and the
+   scratch card call it directly.
+5. Read the handler. It is the only place that calls the attribution SDK with
+   an event and the analytics API with an event for the social tool.
+6. Searched the whole application for calls to the analytics API and found two
+   that do not pass any of the above: the login flow reports its experiment
+   events through the API directly.
+7. Read the startup path. The application creates the Firebase app, asks the
+   tracking singleton to initialise itself and asks it to start the libraries,
+   and the social handler is given the application context. The SDKs are
+   therefore started whatever this patch does.
+
+**Derived facts:**
+
+| Fact | Value |
+|---|---|
+| Dispatcher | `Lo/LivenessInstructionsUi;->AnimatedBarChartPreview(Lvodafone/vis/engezly/tracking/common/model/ToolType;Ljava/lang/String;Ljava/util/Map;)V` |
+| Dispatcher reads | the tool type, the event key and the event map |
+| Tools | analytics, social media, survey, technical |
+| Social handler | `Lo/clearOnScrollListeners;->AnimatedBarChartKtAnimatedBarChart1111(Lo/clearOnChildAttachStateChangeListeners;)V` |
+| Social handler, second entry point | `Lo/clearOnScrollListeners;->AnimatedBarChartKtAnimatedBarChart1111(Ljava/lang/String;D)V` |
+| Screens that call the social handler directly | dashboard, offers, gift selection, gift mass, scratch card |
+| Analytics API call | `Lcom/google/firebase/analytics/FirebaseAnalytics;->logEvent(Ljava/lang/String;Landroid/os/Bundle;)V` |
+| Experiment events | reported by the login flow, through the analytics API directly |
+| SDK start-up | `FirebaseApp.initializeApp`, the tracking singleton's `init` and `initLibraries`, the social handler's `init` |
+| Return types of every patched method | void |
+
+**Decision:** silence the dispatcher, both entry points of the social handler
+and the analytics API call. The dispatcher covers the application's own event
+vocabulary, the social handler covers the screens that report without asking
+the dispatcher, and the API call covers the experiment events. Every method is
+void, so no caller can be left waiting for a value.
+
+**Known limitations:** the SDKs are still created and started, so the traffic
+they produce on their own, such as install attribution and session reporting,
+is not stopped. The events are still prepared before they are reported, so the
+work is done even though nothing is sent.
+
+**Verification run:** the unified run applies the Ana Vodafone patches to the
+stock base APK and reports `PASS` for each of them, and the patched APK
+compiles. The injected returns were confirmed in the decompiled output. The
+behaviour has not been observed on a device, because no test device is
+available.
+
+### `vodafone.account.remote-actions` - derived 2026-11-10
+
+**Consulted:** the stock 2026.11.1 APKM only, decompiled locally with apktool
+3.0.3 and `--no-res`. No other patch collection was opened.
+
+**How it was found:**
+
+1. Listed the notification package and found a push listener whose metadata
+   names it `VodafonePushListener`. It implements the push service's listener
+   interface and holds a logout use case, a silent-notification view model and
+   an application scope.
+2. Read the silent-push path. It reads a key out of the message and compares it
+   with the keys of the action enum: the token-expiry key, the user-token key
+   and the shopping-cart key are each handled by the application itself.
+3. Read the action enum. It has five entries: clearing the application data,
+   logging out, updating the token expiry, resetting the user token and
+   updating the shopping-cart count.
+4. Followed the branch that the three handled keys do not take. It hands the key
+   to the destructive handler.
+5. Read the destructive handler. It reads the current activity, reads the user
+   information and launches a coroutine. The coroutine compares the key with
+   the clearing key and calls the system service that clears the application's
+   data, and compares it with the logout key and runs the logout use case.
+6. Searched for other callers of the destructive handler and found only the
+   silent-push path.
+
+**Derived facts:**
+
+| Fact | Value |
+|---|---|
+| Push listener | `Lo/getChildPosition;`, the push service's listener interface |
+| Key of the message | the `silent_push_key` extra |
+| Keys the application handles itself | `update_token_expire_date`, `RefreshData`, `UpdateEshopCartCount` |
+| Destructive handler | `Lo/getChildPosition;->AnimatedBarChartPreview(Ljava/lang/String;)V` |
+| Clearing key | `ClearAppCache` |
+| Clearing action | `ActivityManager.clearApplicationUserData()` |
+| Logout key | `ForceLogout` |
+| Logout action | the logout use case, then the user is sent back to the login screen |
+| Other callers of the handler | none |
+
+**Decision:** answer the destructive handler with an early return. It is
+reached only for the keys the application does not handle itself, so the token
+refresh, the user-token reset and the shopping-cart count keep working, and the
+two destructive actions never run.
+
+**Known limitations:** the server still sends the messages and still believes it
+may wipe the installation or end the session. A session the server has already
+refused still ends.
+
+**Verification run:** the unified run applies the Ana Vodafone patches to the
+stock base APK and reports `PASS` for each of them, and the patched APK
+compiles. The injected return was confirmed in the decompiled output. The
+behaviour has not been observed on a device, because no test device is
+available.
+
+### `vodafone.promotion.ad-space` - derived 2026-11-10
+
+**Consulted:** the stock 2026.11.1 APKM only, decompiled locally with apktool
+3.0.3 and `--no-res`. No other patch collection was opened.
+
+**How it was found:**
+
+1. Listed the application packages and found an `adspace` package with a
+   presentation folder, a model folder and a domain folder.
+2. Read the view model whose metadata names it `AdSpaceViewModel`. It holds the
+   state of the card, asks a use case for the offer and asks another use case
+   to redeem it. The state starts empty and is filled when the offer arrives.
+3. Read the presentation model. It carries the description, the price, the
+   gift, the redemption pattern, the confirmation and rejection buttons and the
+   destination of the offer.
+4. Searched for the code that draws the card and found one composable that
+   takes the view model and the state and draws the offer.
+5. Listed its callers. The home screen, the recharge and balance screen, the
+   payment screen and the flex management home call it, directly or through the
+   copies the shrinker left behind.
+
+**Derived facts:**
+
+| Fact | Value |
+|---|---|
+| View model | `Lvodafone/vis/engezly/adspace/presentation/AdSpaceViewModel;` |
+| Offer use case | `GetAdSpacePromoUseCase` |
+| Redemption use case | `RedeemAdSpacePromoUseCase` |
+| State | a flow that starts empty and is filled when the offer arrives |
+| Composables that draw the card | one |
+| Card composable | `Lo/updateAnchorInfoForLayout;->AdSpaceCard-lVb_Clg(...)V` |
+| Screens that call it | flex home, recharge and balance, payment, flex management home |
+| Return type | void |
+
+**Decision:** answer the card composable with an early return, so it draws
+nothing. A composable that emits no nodes leaves no space behind, and no screen
+reads the offer back from the card.
+
+**Known limitations:** the offer is still requested from the server and still
+held by the view model; only the drawing is stopped. The redemption flow stays
+reachable through the server answer, but not through the interface.
+
+**Verification run:** the unified run applies the Ana Vodafone patches to the
+stock base APK and reports `PASS` for each of them, and the patched APK
+compiles. The injected return was confirmed in the decompiled output. The
+behaviour has not been observed on a device, because no test device is
+available.
+
+### `vodafone.account.account-limit` - derived 2026-11-10
+
+**Consulted:** the stock 2026.11.1 APKM only, decompiled locally with apktool
+3.0.3 and `--no-res`. No other patch collection was opened.
+
+**How it was found:**
+
+1. Listed the account packages and found the switch-account overlay, the
+   credential-login overlay and the screen that says too many accounts are
+   saved.
+2. Searched the account packages for a comparison of a list size with a
+   constant and found two places. The first is a method of its own that asks
+   whether the accounts are at the limit; it compares the size with six when the
+   first account is a seamless one and with five otherwise. The second is the
+   comparison inside the method that asks which account to switch to; it
+   compares the size with five and shows the screen when the list is at least
+   that long.
+3. Read the method that asks which account to switch to. When the list is
+   shorter than the limit it takes the path that switches to the account whose
+   number matches the user; when the list is at the limit it takes the other
+   path. The comparison is the only thing that decides between the two.
+4. Searched the whole application for other counts against five or six and
+   found none that decide whether an account may be added.
+
+**Derived facts:**
+
+| Fact | Value |
+|---|---|
+| Limit | five saved accounts, six when the first of them is a seamless one |
+| First check | `SwitchAccountOverlayKt.checkIfAccountsMaxLimit(List)Z` |
+| Second check | `CredentialsLoginOverlayKt.onSwitchAccountClicked(SavedAccountsUiState, Function0, Function0)V` |
+| Screen shown when the limit is reached | the saved-accounts-exceed-limit overlay |
+| Return types | the first check answers a boolean, the second is void |
+
+**Decision:** answer the first check with "the list is not full" and make the
+second check count zero saved accounts, which is the answer the comparison
+takes for a list that is not full. The account that is being switched to is
+found in the list in the same way as before.
+
+**Known limitations:** the server still decides what each account may do, and
+the accounts are still stored the way they always were.
+
+**Verification run:** the unified run applies all registered Ana Vodafone patches
+to the stock base APK and reports `PASS` for each of them, and the patched APK
+compiles. The injected answers were confirmed in the decompiled output. The
+behaviour has not been observed on a device, because no test device is
+available.
+
+### `vodafone.network.certificate-pinning` - derived 2026-11-10
+
+**Consulted:** the stock 2026.11.1 APKM only, decompiled locally with apktool
+3.0.3 and `--no-res`. No other patch collection was opened.
+
+**How it was found:**
+
+1. Searched the application for the certificate pinning API and found two
+   builders of a pinner: one in the application's own network layer and one in
+   the authentication layer.
+2. Read both builders. They are the same code: a pinner for one host with two
+   public keys.
+3. Read the place where the pinner is attached to the client. The
+   application's own layer attaches it when its configuration asks for it, and
+   the authentication layer does the same.
+4. Searched the whole application for other uses of the certificate API. The
+   remaining ones belong to libraries that build a client without pins.
+
+**Derived facts:**
+
+| Fact | Value |
+|---|---|
+| Pinned host | `mobile.vodafone.com.eg` |
+| Pinned keys | `sha256/wdks7OHYA8F/OIfcK4rPxn5H2QjOLZN2paEk/D+64W8=` and `sha256/yMoKrrKMydah5ZHYUtRtI5IJtR+5hZ1Ls7rO8jHsLjU=` |
+| Application pinner | `Lo/getPrintScreenEK5gGoQ$AnimatedBarChartKtAnimatedBarChart1;->AnimatedBarChartKtAnimatedBarChart1()Lokhttp3/CertificatePinner;` |
+| Authentication pinner | `Lo/updateAuxData$AnimatedBarChartKtAnimatedBarChart1;->AnimatedBarChartKtAnimatedBarChart1()Lokhttp3/CertificatePinner;` |
+| Other pins | none |
+
+**Decision:** remove the host from both pins. A pinner without a host matches no
+request, so the certificate is validated against the trust store of the device
+instead. The keys and the pinner itself are left in the build.
+
+**Known limitations:** the connection is no longer checked against the two keys
+the operator ships with the application.
+
+**Verification run:** the unified run applies all registered Ana Vodafone patches
+to the stock base APK and reports `PASS` for each of them, and the patched APK
+compiles. The replaced host was confirmed in the decompiled output. The
+behaviour has not been observed on a device, because no test device is
+available.
+
+### `vodafone.account.stored-password` - derived 2026-11-10
+
+**Consulted:** the stock 2026.11.1 APKM only, decompiled locally with apktool
+3.0.3 and `--no-res`. No other patch collection was opened.
+
+**How it was found:**
+
+1. Listed the account packages and followed the password from the screen that
+   asks for it to the place the account is stored.
+2. Read the screen: the password the user types is put into the account record
+   that is handed to the login.
+3. Read the mapper that turns a login response into the account the
+   application keeps. It reads the account out of the signed token the server
+   sent and then writes the password of this login over the one the token
+   carries.
+4. Read the two callers of that mapper. The application passes the password of
+   the login it is performing, which is empty for every login that does not ask
+   for one. The authentication layer passes the password that is already
+   stored, which is empty as well because nothing ever writes it.
+5. Read the second mapper, the one that turns the account into the record the
+   database keeps, and the database interface. The record has a password column
+   and the database interface has a method that writes it, but nothing calls
+   that method.
+6. Read the credential login. It reads the password of the account it is asked
+   to open and uses it when it is there, and asks for one when it is not.
+7. Read the list of saved accounts. It is built from the stored records, and
+   the mapper reads the password of the record into the account it hands to the
+   list.
+
+**Derived facts:**
+
+| Fact | Value |
+|---|---|
+| Mapper that overwrites the password | `Lo/ContentPainterModifiermeasure1;->AnimatedBarChartKtAnimatedBarChart1111(LoginResponseModel, Z, String)UserInfo` |
+| The overwrite | `UserInfo.setPassword(password)` with the password of this login |
+| The token | carries the password of the account |
+| Record | `UserAuthInfoEntity`, with a password column |
+| Database method that writes the password | `UserAuthInfoStore.updateUserPassword`, never called |
+| Where the stored password is used | the credential login, when the account it opens has one |
+
+**Decision:** write the password only when the login carries one. A login that
+does not carry one keeps the password the signed token holds, which is the
+password the server holds for that account, so the application can log in with
+it without asking. A login that does carry one still writes it, so the password
+the user typed is never lost.
+
+**Known limitations:** if a server stopped putting the password in its token,
+the application would ask for the password again, as it does in the stock build.
+
+**Verification run:** the unified run applies all registered Ana Vodafone patches
+to the stock base APK and reports `PASS` for each of them, and the patched APK
+compiles. The rewritten branch was confirmed in the decompiled output. The
+behaviour has not been observed on a device, because no test device is
+available.
+
+### `vodafone.system.screenshots` - derived 2026-11-11
+
+**Consulted:** the stock 2026.11.1 APKM only, decompiled locally with apktool
+3.0.3 and `--no-res`. No other patch collection was opened.
+
+**How it was found:**
+
+1. Listed the libraries the application starts at launch and found a security
+   library, `com.cyshield.appshield`, with initializers of its own.
+2. Read the manifest. The library is started by the startup provider of the
+   application, and its initializer is registered with the application context.
+3. Read the initializer of the library. It registers two callbacks that watch
+   the screens of the application: one that follows them and one that protects
+   them.
+4. Read the protection callback. It keeps a flag that says whether the
+   protection is on, a prefix of the package names it applies to, and the
+   screens that are open. When a screen is created, started or resumed, it
+   checks whether the screen belongs to the application and, if it does, sets
+   the secure flag on the window of that screen.
+5. Read the rest of the library. It carries a list of the checks it can run,
+   among them the checks for root, for a developer build, for USB debugging,
+   for an emulator, for a hooking framework and for a screen recording,
+   together with the entry point that starts them and the one that builds its
+   own certificate pinner.
+6. Searched the whole application for calls to those two entry points and found
+   none. The library is initialised with the two callbacks and nothing else, so
+   the device checks and its own pinner are never used in this build.
+
+**Derived facts:**
+
+| Fact | Value |
+|---|---|
+| Library | `com.cyshield.appshield`, started by the startup provider of the application |
+| Initializer | `com.cyshield.appshield.utils.SecuritySdkInitializer` |
+| Screen protection | `com.cyshield.appshield.utils.ScreenProtectionManager` |
+| Method that protects a screen | `Lo/notifySurfaceUpdate;->AnimatedBarCharthGBTI10(Landroid/app/Activity;)V` |
+| What it does | `Window.addFlags(0x2000)`, the secure flag |
+| Checks the library can run | root, developer mode, debug build, USB debugging, emulator, screen recording, hooking frameworks, prevent screenshots |
+| Are those checks run | no, nothing calls the entry point that starts them |
+| Is the library's own pinner used | no, nothing calls the method that builds it |
+
+**Decision:** answer the method that protects a screen with an early return, so
+the window is left as the application made it.
+
+**Known limitations:** the library stays in the build and keeps watching the
+screens; only the flag it sets on their windows is gone.
+
+**Verification run:** the unified run applies all registered Ana Vodafone patches
+to the stock base APK and reports `PASS` for each of them, and the patched APK
+compiles. The injected return was confirmed in the decompiled output. The
+behaviour has not been observed on a device, because no test device is
+available.
 
 ## Not consulted
 

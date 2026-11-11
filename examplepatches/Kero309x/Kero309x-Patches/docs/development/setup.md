@@ -74,11 +74,11 @@ local copy:
 ./gradlew verifyPatches -Papk="C:/path/to/stock-build.apk"
 ```
 
-Every registered patch is applied to the stock build with validation enabled. The
-run prints one line per patch and fails if a fingerprint does not match, if a
-patch throws, or if the bytecode it produces does not assemble. Add
-`-Pout="C:/path/to/patched.apk"` to write the patched, unsigned APK, which also
-proves that the result compiles.
+Every patch of the APK's own application is applied to the stock build with
+validation enabled. The run prints one line per patch and fails if a fingerprint
+does not match, if a patch throws, or if the bytecode it produces does not
+assemble. Add `-Pout="C:/path/to/patched.apk"` to write the patched, unsigned
+APK, which also proves that the result compiles.
 
 This is the gate every patch passes before it is released. It proves that the
 patches find what they expect and that the result assembles; it does not prove

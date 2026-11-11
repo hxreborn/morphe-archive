@@ -3,6 +3,7 @@
 
 package app.keropatches.verification
 
+import app.keropatches.registry.AppRegistry
 import app.keropatches.registry.PatchRegistry
 import app.morphe.patcher.Patcher
 import app.morphe.patcher.PatcherConfig
@@ -11,7 +12,11 @@ import java.io.File
 import kotlin.system.exitProcess
 
 /**
- * Applies every registered patch to an unmodified APK and reports the result.
+ * Applies every patch of the APK's own application and reports the result.
+ *
+ * The bundle ships patches for more than one application, so the APK's package
+ * name selects the set to run: applying a patch for another application would
+ * fail on fingerprints that are not in this APK.
  *
  * This is a development tool, not part of the shipped bundle. It exists because a
  * fingerprint that cannot be found must fail here, on a developer's machine,
@@ -49,6 +54,7 @@ fun main() {
     val workspace = createTempDir(prefix = "keropatches-verify-")
     val failures = mutableListOf<String>()
     var executed = 0
+    var expected = 0
 
     try {
         val config = PatcherConfig(
@@ -59,7 +65,21 @@ fun main() {
         )
 
         Patcher(config).use { patcher ->
-            patcher += PatchRegistry.all
+            val packageName = patcher.context.packageMetadata.packageName
+            val application = AppRegistry.byPackageName(packageName)
+            if (application == null) {
+                System.err.println("No application is registered for package '$packageName'.")
+                exitProcess(2)
+            }
+
+            // Apply only the patches of the application this APK actually is. The
+            // bundle ships patches for several applications, and a patch for a
+            // different one cannot resolve its fingerprints here.
+            val patches = PatchRegistry.all.filterTo(linkedSetOf()) { patch ->
+                PatchRegistry.applicationOf(patch) == application.id
+            }
+            println("Applying ${patches.size} patches for $packageName")
+            patcher += patches
 
             runBlocking {
                 patcher().collect { result ->
@@ -83,16 +103,18 @@ fun main() {
                 println()
                 println("Wrote patched APK to $output (unsigned)")
             }
+
+            expected = patches.size
         }
     } finally {
         workspace.deleteRecursively()
     }
 
     println()
-    if (failures.isEmpty() && executed == PatchRegistry.all.size) {
-        println("All $executed registered patches applied to $apk")
+    if (failures.isEmpty() && executed == expected) {
+        println("All $executed patches for the supplied APK applied to $apk")
     } else {
-        println("Executed $executed of ${PatchRegistry.all.size}; failed: ${failures.joinToString()}")
+        println("Executed $executed of $expected; failed: ${failures.joinToString()}")
         exitProcess(1)
     }
 }

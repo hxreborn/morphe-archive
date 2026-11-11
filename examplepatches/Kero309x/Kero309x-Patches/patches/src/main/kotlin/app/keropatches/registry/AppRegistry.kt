@@ -5,6 +5,7 @@ package app.keropatches.registry
 
 import app.keropatches.anghami.AnghamiApp
 import app.keropatches.core.AppDefinition
+import app.keropatches.vodafone.VodafoneApp
 
 /**
  * Every application this bundle supports.
@@ -16,6 +17,7 @@ import app.keropatches.core.AppDefinition
 object AppRegistry {
     val applications: List<AppDefinition> = listOf(
         AnghamiApp.definition,
+        VodafoneApp.definition,
     )
 
     fun byPackageName(packageName: String): AppDefinition? =

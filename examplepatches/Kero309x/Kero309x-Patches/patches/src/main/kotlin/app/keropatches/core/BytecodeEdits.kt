@@ -5,12 +5,15 @@ package app.keropatches.core
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
+import app.morphe.patcher.extensions.InstructionExtensions.removeInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstructions
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 /**
  * Makes this method see a boolean field as false without changing the field.
@@ -85,6 +88,138 @@ internal fun MutableMethod.answerBooleanCallsWithTrue(method: String) {
         val destination = (result as OneRegisterInstruction).registerA
         replaceInstruction(resultIndex, "const/16 v$destination, 0x1")
     }
+}
+
+/**
+ * Makes every call to this integer method in this method answer zero.
+ *
+ * Some guards compare a count against a maximum. Replacing the answer of the
+ * count with zero makes the comparison answer "below the maximum", which is the
+ * path the code takes when there is nothing to compare. The call is kept, so the
+ * caller's register usage and control flow stay as they are; only the answer
+ * changes.
+ *
+ * The constant is written with `const/4`, which needs the destination register
+ * to be one of the first sixteen.
+ *
+ * @param method method reference in smali form, for example
+ *   `Ljava/util/List;->size()I`.
+ */
+internal fun MutableMethod.answerIntCallsWithZero(method: String) {
+    val indices = instructions.indices.filter { index ->
+        val instruction = instructions[index]
+        instruction.opcode in INVOKE_OPCODES &&
+            (instruction as? ReferenceInstruction)?.reference?.toString() == method
+    }
+
+    check(indices.isNotEmpty()) {
+        "No call to $method in $definingClass->$name$returnType; the code changed."
+    }
+
+    indices.forEach { index ->
+        val resultIndex = index + 1
+        check(resultIndex < instructions.size) {
+            "The call to $method at $index has no following instruction in " +
+                "$definingClass->$name$returnType."
+        }
+
+        val result = instructions[resultIndex]
+        check(result.opcode == Opcode.MOVE_RESULT) {
+            "The call to $method at $index is not followed by move-result in " +
+                "$definingClass->$name$returnType."
+        }
+
+        val destination = (result as OneRegisterInstruction).registerA
+        check(destination <= 15) {
+            "The answer to $method lands in v$destination, which const/4 cannot " +
+                "write in $definingClass->$name$returnType."
+        }
+
+        replaceInstruction(resultIndex, "const/4 v$destination, 0x0")
+    }
+}
+
+/**
+ * Replaces the string this method pushes with another one.
+ *
+ * A string constant is one instruction whatever its content, so the replacement
+ * keeps the method the same size and leaves every register as it was. Only the
+ * constants that hold exactly the given text are replaced, which keeps the edit
+ * to the one place the text appears.
+ *
+ * @param from the text to replace, as it is written in the source.
+ * @param to the text to write instead.
+ */
+internal fun MutableMethod.replaceStringConstant(from: String, to: String) {
+    val indices = instructions.indices.filter { index ->
+        val instruction = instructions[index]
+        instruction.opcode == Opcode.CONST_STRING &&
+            (instruction as? ReferenceInstruction)?.reference is StringReference &&
+            ((instruction as ReferenceInstruction).reference as StringReference).string == from
+    }
+
+    check(indices.isNotEmpty()) {
+        "No string constant \"$from\" in $definingClass->$name$returnType; the code changed."
+    }
+
+    indices.forEach { index ->
+        val register = (instructions[index] as OneRegisterInstruction).registerA
+        replaceInstruction(index, "const-string v$register, \"$to\"")
+    }
+}
+
+/**
+ * Removes the call to this method from this method.
+ *
+ * Some code overwrites a value the caller has already filled in. Removing the
+ * call keeps the value the object was built with, which is the one the rest of
+ * the application reads. The call is removed rather than its answer replaced,
+ * because the answer of the call is not read by the caller.
+ *
+ * The calls are removed from the last one backwards, so the positions of the
+ * calls that are still to be removed stay correct.
+ *
+ * @param method method reference in smali form, for example
+ *   `Lcom/example/Thing;->setName(Ljava/lang/String;)V`.
+ */
+internal fun MutableMethod.removeCallTo(method: String) {
+    val indices = instructions.indices.filter { index ->
+        val instruction = instructions[index]
+        instruction.opcode in INVOKE_OPCODES &&
+            (instruction as? ReferenceInstruction)?.reference?.toString() == method
+    }
+
+    check(indices.isNotEmpty()) {
+        "No call to $method in $definingClass->$name$returnType; the code changed."
+    }
+
+    indices.sortedDescending().forEach { index ->
+        removeInstruction(index)
+    }
+}
+
+/**
+ * Replaces the call to this method with a block of instructions.
+ *
+ * Some guards need more than a constant: a branch, or a value taken from another
+ * field. The block is written as smali and compiled against this method, so its
+ * registers and its parameters are the ones of the method it replaces.
+ *
+ * @param method method reference in smali form, for example
+ *   `Lcom/example/Thing;->setName(Ljava/lang/String;)V`.
+ * @param block the instructions that take the place of the call.
+ */
+internal fun MutableMethod.replaceCallWithBlock(method: String, block: String) {
+    val index = instructions.indexOfFirst { instruction ->
+        instruction.opcode in INVOKE_OPCODES &&
+            (instruction as? ReferenceInstruction)?.reference?.toString() == method
+    }
+
+    check(index >= 0) {
+        "No call to $method in $definingClass->$name$returnType; the code changed."
+    }
+
+    replaceInstructions(index, block)
 }
 
 /**

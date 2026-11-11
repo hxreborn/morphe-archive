@@ -3,10 +3,11 @@
 An independent, clean-room patch collection for the Morphe patching framework,
 maintained by Kero309x.
 
-> **Status: pre-alpha.** All twenty patches are implemented and pass the build and
-> the patch-application gate against the stock 8.0.28 build (20/20). None has been
-> checked on a device yet. A signed pre-release bundle, `v0.1.2`, is published;
-> treat it as unverified at runtime.
+> **Status: pre-alpha.** All twenty-nine patches are implemented and pass the build
+> and the patch-application gate against their stock builds (20/20 for Anghami
+> 8.0.28, 9/9 for Ana Vodafone 2026.11.1). None has been checked on a device yet. A
+> signed pre-release bundle, `v0.1.4`, is published; treat it as unverified at
+> runtime.
 
 ## What this is
 
@@ -38,6 +39,28 @@ Morphe reads `patches-bundle.json` from `main` and downloads the bundle attached
 to the latest release. Every `0.x` release is a pre-release, so enable
 pre-releases for this source.
 
+The source brings every application it has patches for, so one source covers
+both applications in the table below. Do not add it through a link that names
+one application: Morphe reads the `app` parameter of such a link as "bring this
+application only", and leaves the others out. The links above name no
+application, so both are brought.
+
+Three things have to be in place for the manager to use the source:
+
+- the manager has to be recent enough for the patcher the bundle asks for
+  (`Patcher-Version` in the bundle manifest). An older manager marks the source
+  as needing an update and skips it;
+- pre-release patches have to be on for the source, as every release so far is a
+  pre-release;
+- the application has to be installed, since the manager lists the applications
+  it finds on the device.
+
+Morphe keeps the metadata of a source, so a source that was added before an
+application joined it keeps that application out until it is brought back in the
+source's own application list. The list is one tap away from the `Apps` row on
+the source card, and an application that arrived with a later release is marked
+`New` there.
+
 From `0.1.2` the bundle is signed with Ed25519 and the metadata publishes the
 matching `public_key`, so the manager can reject a bundle altered after
 publication. Earlier releases are unsigned and have no `classes.dex`, which makes
@@ -66,12 +89,14 @@ derivative works.
 | Application | Package | Version | File type |
 |---|---|---|---|
 | Anghami | `com.anghami` | 8.0.28 (8000280) | APKM |
+| Ana Vodafone | `com.emeint.android.myservices` | 2026.11.1 (1246) | APKM |
 
 The table lists the applications currently registered. The bundle is not tied to
 a single application: another target is added as a package with its own
 compatibility data and specs, without changing the core layer.
 
-Behaviour specifications: [`docs/specs/anghami/`](docs/specs/anghami/README.md).
+Behaviour specifications: [`docs/specs/anghami/`](docs/specs/anghami/README.md)
+and [`docs/specs/vodafone/`](docs/specs/vodafone/README.md).
 
 Behaviours that other collections implement but this one does not are not
 carried over. Adding one is new work: a spec, a derivation, an implementation,
@@ -137,8 +162,8 @@ the bytecode assembles; runtime behaviour needs a device and is checked separate
 
 The table below mirrors the ordered `Catalogue.kt` list and is updated in the same
 change as any patch. The registry test keeps the catalogue, the registry and the
-behaviour specs in agreement. All twenty patches are enabled by default (decision
-`0004`).
+behaviour specs in agreement. All twenty-nine patches are enabled by default
+(decision `0004`).
 
 | # | Patch | Category | Default | Spec |
 |---|---|---|---|---|
@@ -162,6 +187,15 @@ behaviour specs in agreement. All twenty patches are enabled by default (decisio
 | 18 | Hide in-feed ad banners | Ads and promotion | on | [spec](docs/specs/anghami/feed-ad-banners.md) |
 | 19 | Ignore the forced update requirement | Store and upsells | on | [spec](docs/specs/anghami/forced-update.md) |
 | 20 | Disable first-party Silo telemetry | Privacy | on | [spec](docs/specs/anghami/silo-telemetry.md) |
+| 21 | Skip the store licence check | Store and upsells | on | [spec](docs/specs/vodafone/license-check.md) |
+| 22 | Disable the forced update requirement | Store and upsells | on | [spec](docs/specs/vodafone/forced-update.md) |
+| 23 | Disable usage tracking | Privacy | on | [spec](docs/specs/vodafone/tracking.md) |
+| 24 | Ignore the server's remote wipe and forced logout | Account and entitlements | on | [spec](docs/specs/vodafone/remote-actions.md) |
+| 25 | Hide the promotional card | Ads and promotion | on | [spec](docs/specs/vodafone/ad-space.md) |
+| 26 | Remove the saved account limit | Account and entitlements | on | [spec](docs/specs/vodafone/account-limit.md) |
+| 27 | Disable certificate pinning | Network and security | on | [spec](docs/specs/vodafone/certificate-pinning.md) |
+| 28 | Keep the password of each account | Account and entitlements | on | [spec](docs/specs/vodafone/stored-password.md) |
+| 29 | Allow screenshots | Interface | on | [spec](docs/specs/vodafone/screenshots.md) |
 
 ## Development
 

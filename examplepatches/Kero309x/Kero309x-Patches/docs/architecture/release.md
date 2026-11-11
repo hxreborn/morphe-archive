@@ -2,8 +2,9 @@
 
 Status: `v0.1.0` was published from a local build; `v0.1.1` was the first release
 produced by the automated workflow; `v0.1.2` is the first signed release built by
-`buildAndroid` for Morphe Manager. The sections below distinguish what has been
-exercised from what is still intended.
+`buildAndroid` for Morphe Manager; `v0.1.3` is the first release that carries a
+second application; `v0.1.4` completes the behaviours of that application. The
+sections below distinguish what has been exercised from what is still intended.
 
 ## Published so far
 
@@ -12,12 +13,16 @@ exercised from what is still intended.
 | 0.1.0 | 2026-11-09 | pre-release, published manually, Desktop-only | `Kero309x-Patches-0.1.0.mpp` |
 | 0.1.1 | 2026-11-09 | pre-release, published by the release workflow, Desktop-only | `Kero309x-Patches-0.1.1.mpp` |
 | 0.1.2 | 2026-11-09 | pre-release, published by the release workflow, signed, Manager-ready | `Kero309x-Patches-0.1.2.mpp` |
+| 0.1.3 | 2026-11-10 | pre-release, published by the release workflow, signed, Manager-ready, two applications | `Kero309x-Patches-0.1.3.mpp` |
+| 0.1.4 | 2026-11-11 | pre-release, published by the release workflow, signed, Manager-ready, two applications | `Kero309x-Patches-0.1.4.mpp` |
 
 Each bundle is built from the tagged commit.
 
 - `0.1.0` — `BD74E5B95BADD671DB0C4678D874EE7456750A688FCB0849FEFACFD4F102B644`
 - `0.1.1` — `849971EF03A28F5767DCCE5FCBC6428D5D64626C6309615D486554377CED9FE4`
 - `0.1.2` — `47B177D75EF06CA5E34497B8005DB0415B57A10C9A5C41B7F049C127BE6FEDFD`
+- `0.1.3` — `1BA60367F99AD3D68C0FBC7700C37EE47B057F09F47897CC8BB026DAA3BE2B00`
+- `0.1.4` — `751FDE19FB9E1079A0D564B1C9510C0671E0A095BB929B204FC253661EE9BBD7`
 
 The same hash is repeated in the release notes.
 
@@ -25,7 +30,9 @@ The same hash is repeated in the release notes.
 
 The bundle version lives in `gradle.properties` as `version`. A release is a tag
 of the form `v<version>` on `main`. The version is bumped in its own commit
-before the release commit, so the tag and the manifest always agree.
+before the release commit, so the tag and the manifest always agree. The index
+file is regenerated in that same commit: it carries the version, so a bump that
+left it behind would make the build report a stale index.
 
 ## What a release publishes
 
@@ -47,9 +54,9 @@ and an empty signature URL. `public_key` is added only when the build was signed
 It is generated, not edited by hand.
 
 The `description` is a copy of the release notes taken at publish time, so notes
-rewritten afterwards do not reach the manager until the next release. `0.1.2` is
-the one case where the field was synced by hand, in a dedicated commit, after its
-notes were replaced.
+rewritten afterwards do not reach the manager until the next release. `0.1.2` and
+`0.1.3` are the two cases where the field was synced by hand, in a dedicated
+commit, after its notes were replaced.
 
 `patches-list.json` at the repository root is the file third-party indexes read.
 The manager never reads it. `buildAndroid` regenerates it from `Catalogue` through

@@ -27,16 +27,20 @@ class RegistryTest {
     private val repositoryRoot = findRepositoryRoot()
 
     private val specIds: Map<String, List<String>> by lazy {
-        File(repositoryRoot, "docs/specs/anghami")
-            .listFiles { file -> file.extension == "md" && file.name != "README.md" }
-            .orEmpty()
-            .associate { file -> file.name to declaredIds(file) }
+        AppRegistry.applications
+            .flatMap { definition ->
+                File(repositoryRoot, definition.specDirectory)
+                    .listFiles { file -> file.extension == "md" && file.name != "README.md" }
+                    .orEmpty()
+                    .map { file -> file.relativeTo(repositoryRoot).invariantSeparatorsPath }
+            }
+            .associateWith { specPath -> declaredIds(File(repositoryRoot, specPath)) }
     }
 
-    private fun declaredStatus(fileName: String): String =
-        STATUS_LINE.find(File(repositoryRoot, "docs/specs/anghami/$fileName").readText())
+    private fun declaredStatus(specPath: String): String =
+        STATUS_LINE.find(File(repositoryRoot, specPath).readText())
             ?.groupValues?.get(1)
-            ?: error("'$fileName' has no status line")
+            ?: error("'$specPath' has no status line")
 
     @Test
     fun everyRegisteredPatchHasACatalogueEntry() {

@@ -8,10 +8,10 @@ declares support for, and it is developed independently: the framework is used
 through its published contracts, and no patch code is taken from any other patch
 collection.
 
-Anghami is the first registered application. Applications are declared one at a
-time in `AppRegistry`; the structure below is what makes each addition a package
-change rather than a core change. The bundle does not claim support for an
-application until it is registered.
+Anghami was the first registered application; Ana Vodafone is the second.
+Applications are declared one at a time in `AppRegistry`; the structure below is
+what makes each addition a package change rather than a core change. The bundle
+does not claim support for an application until it is registered.
 
 ## Layers
 

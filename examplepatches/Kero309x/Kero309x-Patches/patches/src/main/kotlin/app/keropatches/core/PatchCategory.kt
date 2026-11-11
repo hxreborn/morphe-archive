@@ -18,4 +18,5 @@ enum class PatchCategory(val label: String) {
     MEDIA("Media and lyrics"),
     STORE("Store and upsells"),
     INTERFACE("Interface"),
+    SECURITY("Network and security"),
 }

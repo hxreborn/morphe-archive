@@ -26,3 +26,6 @@ tools/.cache/
 work-audit/
 work-find/
 .buildenv
+# build secrets live as sandbox-storage release assets, never in git
+morphe.keystore
+morphe-signing.key
