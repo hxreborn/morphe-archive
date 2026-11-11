@@ -1,6 +1,26 @@
-# Repos reported by the last notification (5)
-0xRJDev/shikify
-RizkLee/morphe-bilibili-danmaku
-maniesh-NR/Vogelkop-MorphePatches
-pardhu23/morphe-patches
-sazap10/sync-patches
+# Repos reported by the last notification (25)
+4uva4ek/galaxyxr-steamlink-patches
+AbShaheen184/CinemaHQ-Morphe_Patches
+AzizPatel786/kayo-morphe-patches
+Blelle/Blelle-s-Patches
+Globberry/morphe-patches
+Johnnycyan/waze-morphe-patches
+Just-a-lurker/facebook-morphe-patches
+Kenny201/medium-morphe-patches
+Kero309x/Kero309x-Patches
+MOD-PROD/modprod-apk-creator
+Mhs11294/educational-morphe-patches
+SeveriT/morphe-patches
+SledgeSune/morphe-patches
+Tomveloper/libby-patches
+aayy-dev/patches
+bin0culars/bin0culars-patches
+drtgrf/chefkoch-android-patches
+elouangrimm/sobosuba-morphe-patches
+joelmzj/cyberjoe
+mirbyte/morphe-patches
+oliver-leung/transit-patches
+seythegamer/sey-morphe-patches
+way-lo/waylo-patches
+windwanderer/morphe-patches
+wizzwuz/morphe-patch
